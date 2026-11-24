@@ -1,0 +1,120 @@
+
+const CONTROL_CHARACTERS =
+  /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/;
+
+export function validateDisplayName(value) {
+  if (typeof value !== 'string') {
+    return {
+      valid: false,
+      message: 'Name must be text.'
+    };
+  }
+
+  const name = value.trim();
+
+  if (name.length < 2 || name.length > 40) {
+    return {
+      valid: false,
+      message: 'Name must be between 2 and 40 characters.'
+    };
+  }
+
+  if (CONTROL_CHARACTERS.test(name)) {
+    return {
+      valid: false,
+      message: 'Name contains invalid characters.'
+    };
+  }
+
+  return {
+    valid: true,
+    value: name,
+    message: null
+  };
+}
+
+export function validateAvatarUrl(value) {
+  if (value === null || value === '') {
+    return {
+      valid: true,
+      value: null,
+      message: null
+    };
+  }
+
+  if (typeof value !== 'string' || value.length > 2048) {
+    return {
+      valid: false,
+      message: 'Invalid image address.'
+    };
+  }
+
+  try {
+    const url = new URL(value);
+
+    if (url.protocol !== 'https:') {
+      return {
+        valid: false,
+        message: 'Image address must use HTTPS.'
+      };
+    }
+
+    return {
+      valid: true,
+      value: url.href,
+      message: null
+    };
+  } catch {
+    return {
+      valid: false,
+      message: 'Invalid image address.'
+    };
+  }
+}
+
+export function validateProfileUpdates(updates) {
+  if (
+    !updates ||
+    typeof updates !== 'object' ||
+    Array.isArray(updates)
+  ) {
+    return {
+      valid: false,
+      errors: ['Invalid profile data.'],
+      values: null
+    };
+  }
+
+  const values = {};
+  const errors = [];
+
+  if (Object.hasOwn(updates, 'display_name')) {
+    const result = validateDisplayName(updates.display_name);
+
+    if (result.valid) {
+      values.display_name = result.value;
+    } else {
+      errors.push(result.message);
+    }
+  }
+
+  if (Object.hasOwn(updates, 'avatar_url')) {
+    const result = validateAvatarUrl(updates.avatar_url);
+
+    if (result.valid) {
+      values.avatar_url = result.value;
+    } else {
+      errors.push(result.message);
+    }
+  }
+
+  if (Object.keys(values).length === 0 && errors.length === 0) {
+    errors.push('No profile changes were provided.');
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    values: errors.length === 0 ? values : null
+  };
+}
