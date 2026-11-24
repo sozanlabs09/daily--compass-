@@ -11,20 +11,42 @@ function getSupabaseClient() {
   return supabase;
 }
 
+function validateCredentials(email, password) {
+  if (typeof email !== 'string' || !email.trim()) {
+    throw new Error('Please enter your email address.');
+  }
+
+  const normalizedEmail = email.trim();
+
+  if (
+    normalizedEmail.length > 254 ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
+  ) {
+    throw new Error('Please enter a valid email address.');
+  }
+
+  if (typeof password !== 'string' || password.length === 0) {
+    throw new Error('Please enter your password.');
+  }
+
+  return normalizedEmail;
+}
+
 export async function signUp(email, password) {
   try {
+    const normalizedEmail = validateCredentials(email, password);
     const client = getSupabaseClient();
 
     const { data, error } = await client.auth.signUp({
-      email: email.trim(),
+      email: normalizedEmail,
       password
     });
 
     if (error) throw error;
 
     return {
-      user: data.user,
-      session: data.session,
+      user: data?.user ?? null,
+      session: data?.session ?? null,
       error: null
     };
   } catch (error) {
@@ -38,19 +60,19 @@ export async function signUp(email, password) {
 
 export async function signIn(email, password) {
   try {
+    const normalizedEmail = validateCredentials(email, password);
     const client = getSupabaseClient();
 
-    const { data, error } =
-      await client.auth.signInWithPassword({
-        email: email.trim(),
-        password
-      });
+    const { data, error } = await client.auth.signInWithPassword({
+      email: normalizedEmail,
+      password
+    });
 
     if (error) throw error;
 
     return {
-      user: data.user,
-      session: data.session,
+      user: data?.user ?? null,
+      session: data?.session ?? null,
       error: null
     };
   } catch (error) {
@@ -85,7 +107,7 @@ export async function getCurrentUser() {
     if (error) throw error;
 
     return {
-      user: data.user,
+      user: data?.user ?? null,
       error: null
     };
   } catch (error) {
@@ -98,19 +120,25 @@ export async function getCurrentUser() {
 
 export function onAuthStateChange(callback) {
   try {
+    if (typeof callback !== 'function') {
+      throw new Error('Authentication callback must be a function.');
+    }
+
     const client = getSupabaseClient();
 
     const {
       data: { subscription }
-    } = client.auth.onAuthStateChange(
-      (event, session) => {
+    } = client.auth.onAuthStateChange((event, session) => {
+      try {
         callback({
           event,
           session,
           user: session?.user ?? null
         });
+      } catch (error) {
+        console.error('Authentication callback failed:', error);
       }
-    );
+    });
 
     return {
       subscription,
