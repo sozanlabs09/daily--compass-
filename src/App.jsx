@@ -35,7 +35,7 @@ import {
 
 import {
   getMyEvents, createEvent, updateEvent, deleteEvent
-} from './lib/calendarEvents.js';
+} from './lib/calendar.js';
 
 const navigation = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
